@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Set up a Kinesis Data Streams connection from Pinpoint for local reading
+
+Parameters:
+  PinpointProjectId:
+    Type: String
+    Description: Amazon Pinpoint Project ID
+
+Resources:
+
+  PinpointEventStream:
+    Type: AWS::Pinpoint::EventStream
+    Properties:
+      ApplicationId: !Ref PinpointProjectId
+      DestinationStreamArn: !GetAtt PinpointKinesisStream.Arn
+      RoleArn: !GetAtt PinpointKinesisStreamRole.Arn
+
+  PinpointKinesisStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      ShardCount: 1
+
+  PinpointKinesisStreamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - pinpoint.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "root"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "kinesis:PutRecords"
+                  - "kinesis:DescribeStream"
+                Resource: !GetAtt PinpointKinesisStream.Arn
+
+
+
+Outputs:
+  KinesisStreamName:
+    Description: Configure Amazon Kinesis Data Stream Name
+    Value: !Ref PinpointEventStream
